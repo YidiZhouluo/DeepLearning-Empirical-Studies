@@ -1,9 +1,9 @@
-from pickle import TUPLE
 from typing import Callable, Optional
 from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-
+import numpy as np
+import torch
 
 class CIFAR10:
     """
@@ -76,6 +76,171 @@ class CIFAR10:
             self.test_dataset, batch_size=batch_size, shuffle=False)
         self._log(
             f"数据集加载成功,训练集包括{len(train_loader.dataset)}个样本,测试集包括{len(test_loader.dataset)}个样本是,单张图像形状为{tuple(train_loader.dataset[0][0].shape)}", level="INFO")
+        return train_loader, test_loader
+
+    def load_subset_dataset(
+        self,num_samples: int,
+        batch_size: int = 128,
+        shuffle: bool = True,
+        seed: int = 42,
+    ) -> tuple[DataLoader, DataLoader]:
+        self._check_dataset()
+
+        if not (0 < num_samples <= len(self.train_dataset)):
+            raise ValueError(
+                f"num_samples 必须在 (0, {len(self.train_dataset)}] 范围内，"
+                f"但传参为 {num_samples}"
+            )
+
+        random_generator = np.random.default_rng(seed)
+        all_indices = np.arange(len(self.train_dataset))
+        random_generator.shuffle(all_indices)
+
+        selected_indices = all_indices[:num_samples].tolist()
+        train_subset = torch.utils.data.Subset(self.train_dataset, selected_indices)
+
+        train_loader = DataLoader(train_subset,batch_size=batch_size,shuffle=shuffle,pin_memory=True,)
+
+        test_loader = DataLoader(
+            self.test_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            pin_memory=True,
+        )
+
+        self._log(
+            f"子集加载成功: train={len(train_subset)}, "
+            f"test={len(self.test_dataset)}, "
+            f"image_shape={tuple(train_subset[0][0].shape)}",
+            level="INFO",
+        )
+
+        return train_loader, test_loader
+
+    def _check_dataset(self) -> None:
+        if self.train_dataset is None or self.test_dataset is None:
+            raise ValueError("未找到数据集,请检查是否下载或路径是否正确")
+
+    def _log(self, context: str, level: str = "INFO") -> None:
+        print(f"[{self.LOG_PREFIX}][{level}]: {context}")
+
+
+class CIFAR100:
+    """
+    实现功能：
+    1.下载数据集包括训练集、测试集(自行选择是否联网下载) (√)
+    2.对数据集进行预处理(如归一化、数据增强等) (√)
+    3.将数据集打包为DataLoader形式返回 (√)
+    调用实例：
+    from load_data import CIFAR10
+
+    loader = CIFAR10(
+        dataset_path="./data",      
+        transform=None,
+        download_from_web=True,     
+    )
+
+    loader.process_dataset()
+    train_loader, test_loader = loader.load_dataset(batch_size=64, shuffle=True)
+
+    # 灰度：构造时传入 transform
+    gray_transform = transforms.Compose([
+        transforms.Grayscale(1),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,)),
+    ])
+    loader_gray = CIFAR10(dataset_path="./data", transform=gray_transform)
+    loader_gray.process_dataset()
+    """
+
+    def __init__(self, dataset_path: str = './data', transform: Optional[Callable] = None, download_from_web: bool = True):
+        self.dataset_path = dataset_path
+        self.transform = transform
+        self.download_from_web = download_from_web
+        self.train_dataset = None
+        self.test_dataset = None
+        self.LOG_PREFIX = "CIFAR100"
+        if transform is None:
+            self._log("未提供 transform,使用默认 ToTensor + Normalize", level="WARN")
+            self.transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+        self.download_dataset()  # 创建对象时自动完成下载与预处理
+
+    def download_dataset(self) -> None:
+        if self.download_from_web:
+            self.train_dataset = datasets.CIFAR100(
+                root=self.dataset_path, train=True, download=True)
+            self.test_dataset = datasets.CIFAR100(
+                root=self.dataset_path, train=False, download=True)
+            self._log("联网下载成功", level="INFO")
+        else:
+            self._log("无法进行联网下载,将使用本地数据", level="WARN")
+            self.train_dataset = datasets.CIFAR100(
+                root=self.dataset_path, train=True, download=False)
+            self.test_dataset = datasets.CIFAR100(
+                root=self.dataset_path, train=False, download=False)
+            self._check_dataset()
+
+    def process_dataset(self) -> None:
+        self._check_dataset()
+        self.train_dataset.transform = self.transform
+        self.test_dataset.transform = self.transform
+
+    def load_dataset(self, batch_size: int = 128, shuffle: bool = True) -> tuple[DataLoader, DataLoader]:
+        self._check_dataset()
+        train_loader = DataLoader(
+            self.train_dataset, batch_size=batch_size, shuffle=shuffle)
+        test_loader = DataLoader(
+            self.test_dataset, batch_size=batch_size, shuffle=False)
+        self._log(
+            f"数据集加载成功,训练集包括{len(train_loader.dataset)}个样本,测试集包括{len(test_loader.dataset)}个样本是,单张图像形状为{tuple(train_loader.dataset[0][0].shape)}", level="INFO")
+        return train_loader, test_loader
+
+    def load_subset_dataset(
+        self,
+        num_samples: int,
+        batch_size: int = 128,
+        shuffle: bool = True,
+        seed: int = 42,
+    ) -> tuple[DataLoader, DataLoader]:
+        self._check_dataset()
+
+        if not (0 < num_samples <= len(self.train_dataset)):
+            raise ValueError(
+                f"num_samples 必须在 (0, {len(self.train_dataset)}] 范围内，"
+                f"但传参为 {num_samples}"
+            )
+
+        random_generator = np.random.default_rng(seed)
+        all_indices = np.arange(len(self.train_dataset))
+        random_generator.shuffle(all_indices)
+
+        selected_indices = all_indices[:num_samples].tolist()  # 选取前 num_samples 个索引作为子集
+        train_subset = torch.utils.data.Subset(self.train_dataset, selected_indices)  # 创建子集数据集对象
+
+        train_loader = DataLoader(
+            train_subset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            pin_memory=True,
+        )
+
+        test_loader = DataLoader(
+            self.test_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            pin_memory=True,
+        )
+
+        self._log(
+            f"子集加载成功: train={len(train_subset)}, "
+            f"test={len(self.test_dataset)}, "
+            f"image_shape={tuple(train_subset[0][0].shape)}",
+            level="INFO",
+        )
+
         return train_loader, test_loader
 
     def _check_dataset(self) -> None:

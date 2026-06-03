@@ -1,4 +1,5 @@
 import os
+import csv
 from typing import Dict, List, Optional
 import numpy as np
 import swanlab
@@ -46,8 +47,8 @@ class SwanLabLogger:
     ):
         self.project_name = project_name  # 项目名称，必填
         self.mode = mode
-        self.logdir = local_logdir  # 好像在终端环境中配置过api后不用手动输出默认从环境变量里获取
-        self.api_key = api_key or os.getenv("SWANLAB_API_KEY")
+        self.logdir = local_logdir 
+        self.api_key = api_key or os.getenv("SWANLAB_API_KEY")  # 好像在终端环境中配置过api后不用手动输出默认从环境变量里获取
         self._started = False
         self._validate_params(self.mode, self.project_name,
                               self.api_key, self.logdir)  # 校验参数
@@ -152,6 +153,25 @@ class SwanLabLogger:
             self._log("没有正在进行的实验，无需结束。", level="WARNING")
             return
         self._started = False
+
+    def save_csv_row(self, csv_path: str, row: Dict, print_log: bool = True) -> None:
+        """
+        将一次实验的最终结果追加写入 CSV。
+        不依赖 SwanLab 上传状态，因此 cloud/offline/disabled 模式下都可以使用。
+        """
+        csv_dir = os.path.dirname(csv_path)
+        if csv_dir:
+            os.makedirs(csv_dir, exist_ok=True)
+        write_header = not os.path.exists(csv_path)
+
+        with open(csv_path, mode="a", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+            if write_header:
+                writer.writeheader()
+            writer.writerow(row)
+
+        if print_log:
+            self._log(f"实验结果已写入 CSV: {csv_path}", level="INFO")
 
     @staticmethod
     def make_cls_grid(images: torch.Tensor, max_n: int = 8, normalize: bool = True) -> np.ndarray:
@@ -259,3 +279,73 @@ class SwanLabLogger:
 
     def _log_with_information(self, context: str, project: str, experiment: str, level: str = "INFO") -> None:
         print(f"[{self.LOG_PREFIX}][{project}][{experiment}][{level}]: {context}")
+
+
+def save_model_weights(model, save_path: str, metadata: Optional[Dict] = None) -> None:
+    """
+    保存模型权重和实验元信息。
+    自动兼容 nn.DataParallel 包装后的模型。
+    """
+    save_dir = os.path.dirname(save_path)
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+    model_to_save = model.module if hasattr(model, "module") else model
+
+    torch.save(
+        {
+            "model_state_dict": model_to_save.state_dict(),
+            "metadata": metadata or {},
+        },
+        save_path,
+    )
+    print(f"[save_model_weights][INFO]: 模型权重已保存到 {save_path}")
+
+
+from thop import profile
+
+class StatisticsLogger:
+    def __init__(self):
+        self.log_dict = {}
+        self.LOG_PREFIX = "StatisticsLogger"
+
+    def get_statistics(self, model, model_name, input_channels=3, image_size=32, device="cpu"):
+        """
+        作用:计算并记录模型的 FLOPs 和参数量。根据传入参数生成该模型输入的随机张量,并使用thop库计算FLOPs和参数量。
+        结果会被记录在 log 字典中,调用对应方法可打印相关信息。
+        输入:model(一个 PyTorch 模型实例); input_channels:输入图像的通道数; image_size:输入图像的宽高; device:计算设备（如 "cpu" 或 "cuda"）。
+        输出:无直接返回值，但会在 log 字典中记录模型的 FLOPs 和参数量，并打印相关信息。 
+
+        使用示例:
+        stats_logger = StatisticsLogger()
+        stats_logger.get_statistics(model, "MyModel", input_channels=3, image_size=32, device="cuda")
+        stats_logger.print_statistics(normalize_flops=True, normalize_params=True)
+        """
+        model = model.to(device)
+        model.eval()
+        sample_input = torch.randn(1, input_channels, image_size, image_size).to(device)
+        with torch.no_grad():
+            flops, params = profile(model, inputs=(sample_input,), verbose=False)
+        flops_params_dict = {"flops": flops, "params": params,"flops_gflops": flops / 1e9, "params_million": params / 1e6}
+        self.log_dict[model_name] = flops_params_dict
+        self._log(f"已统计{model_name}的参数量与大小 : FLOPs = {flops_params_dict['flops_gflops']:.4f}, Params = {flops_params_dict['params_million']:.4f}", level="INFO")
+        return flops_params_dict
+
+    def print_statistics(self,normalize_flops: bool = True, normalize_params: bool = True):
+        for model_name, stats in self.log_dict.items():
+            self._log(f" {model_name} : FLOPs = {stats['flops_gflops']:.4f}, Params = {stats['params_million']:.4f}", level="INFO")
+
+    def _log(self, context: str, level: str = "INFO") -> None:
+        print(f"[{self.LOG_PREFIX}][{level}]: {context}")
+
+if __name__ == "__main__":
+    from model import MLP,AlexNet, ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+
+    stats_logger = StatisticsLogger()
+    stats_logger.get_statistics(MLP(num_classes=100, input_channels=3), "MLP", device="cpu")
+    stats_logger.get_statistics(AlexNet(num_classes=100, input_channels=3), "AlexNet", device="cpu")
+    stats_logger.get_statistics(ResNet18(num_classes=100, input_channels=3), "ResNet18", device="cpu")
+    stats_logger.get_statistics(ResNet34(num_classes=100, input_channels=3), "ResNet34", device="cpu")
+    stats_logger.get_statistics(ResNet50(num_classes=100, input_channels=3), "ResNet50", device="cpu")
+    stats_logger.get_statistics(ResNet101(num_classes=100, input_channels=3), "ResNet101", device="cpu")
+    stats_logger.get_statistics(ResNet152(num_classes=100, input_channels=3), "ResNet152", device="cpu")
+    stats_logger.print_statistics()

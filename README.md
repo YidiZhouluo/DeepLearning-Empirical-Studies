@@ -10,8 +10,8 @@ DeepLearning-Empirical-Studies/
 ├── 01-AlexNet-RGB-vs-ResNet152-Gray/  # 每个实验的总文件夹，实验1
 │   ├── code/                          # 实验源代码，可独立运行
 │   ├── report/                        # 实验报告目录
-│   │   ├── Report_ZH.pdf              # 实验报告 (中文版)
-│   │   └── Report_EN.pdf              # 实验报告 (英文版)
+│   │   ├── Report_cn.pdf              # 实验报告 (中文版)
+│   │   └── Report_en.pdf              # 实验报告 (英文版)
 │   ├──requirements.txt                # 依赖包，当前目录下输入pip install requirements.txt安装当前实验的依赖包
 │   └── README.md                      # 当前实验的README.md
 ├── 02-AlexNet-RGB-vs-ResNet152-Gray/  # 每个实验的总文件夹，实验2
