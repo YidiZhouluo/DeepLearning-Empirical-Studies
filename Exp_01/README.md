@@ -1,5 +1,10 @@
 # Exp-01：数据规模、模型复杂度与输入信息量控制实验
 
+## 实验资源
+
+- arXiv 论文预览：[arXiv:2606.04409](https://arxiv.org/abs/2606.04409)
+- SwanLab 实验记录：[Github_Exp01](https://swanlab.cn/@zlyd-CV/Github_Exp01/overview)
+
 ## 实验简介
 
 本实验围绕深度视觉模型的泛化现象展开，主要观察三个因素对模型性能的影响：

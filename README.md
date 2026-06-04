@@ -42,11 +42,64 @@ DeepLearning-Empirical-Studies/
 
 | 实验编号 | 实验名称 | 探究内容 | 实验报告在线预览 | 完成状态 |
 | :---: | :--- | :--- | :---: | :---: |
-| `Exp-01` | [Data Scale, Model Complexity, and Input Information in Vision Generalization](./Exp_01/) | 通过 CIFAR-10/CIFAR-100 控制变量实验，观察训练数据规模、模型复杂度与输入信息模态对模型拟合能力和泛化性能的影响。 | 待补充（arXiv / 在线报告） | 进行中 |
+| `Exp-01` | [Data Scale, Model Complexity, and Input Information in Vision Generalization](./Exp_01/) | 通过 CIFAR-10/CIFAR-100 控制变量实验，观察训练数据规模、模型复杂度与输入信息模态对模型拟合能力和泛化性能的影响。 | [arXiv:2606.04409](https://arxiv.org/abs/2606.04409) | 进行中 |
 
 ## 联系方式
 
 - 邮箱：zhoulyd@126.com
 
-如果觉得有收获，不妨点击一个 ⭐ 哦~~~  
+如果觉得有收获，不妨点击一个 ⭐ 哦~~~
+
+---
+
+# DeepLearning-Empirical-Studies
+
+## Preface
+
+This repository was created on May 11, 2026. It is also the first repository that I have decided to maintain and update over the long term. After spending more than half a year learning about artificial intelligence, computer vision, medical image segmentation, and related fields, I often come up with small experimental questions whenever I encounter new knowledge: “What if...? Then what would happen...?” Therefore, this repository is mainly used to record the problems, ideas, and empirical explorations that arise during my study of machine learning and deep learning. Through controlled experiments, I hope to investigate representational phenomena in models, compare model behavior under different experimental conditions from a qualitative perspective, and reflect on the possible causes behind these observations. I hope this repository can bring useful inspiration, and that my own professional ability can keep improving together with these experiments.
+
+## Repository Structure
+
+Each independent experimental topic is stored in a separate directory. Source code, reports, and reproducibility instructions are kept in the repository, while local datasets, model weights, training logs, and intermediate outputs are excluded from GitHub by default.
+
+```text
+DeepLearning-Empirical-Studies/
+├── Exp_01/                         # Experiment 1: data scale, model complexity, and input information control
+│   ├── code/                       # Source code
+│   │   ├── train.py                # Training entry point
+│   │   ├── model.py                # MLP, AlexNet, and ResNet model definitions
+│   │   ├── load_data.py            # CIFAR-10/CIFAR-100 data loading
+│   │   ├── utils.py                # Logging, statistics, and checkpoint utilities
+│   │   └── generate_figures/       # Figure generation scripts
+│   ├── report/                     # Experiment reports
+│   │   ├── Report_cn.pdf           # Chinese report
+│   │   └── Report_en.pdf           # English report
+│   ├── pre_exp.ipynb               # Preliminary experiment notebook
+│   ├── requirements.txt            # Dependencies for this experiment
+│   └── README.md                   # Experiment-specific README
+├── Exp_02/                         # Future experimental topics
+├── .gitignore                      # Git ignore rules
+├── LICENSE
+└── README.md                       # Repository homepage
+```
+
+## Data Information
+
+- The current experiments mainly use CIFAR-10 and CIFAR-100.
+- Datasets are downloaded to or placed under a local `data/` directory, and dataset files are not uploaded to GitHub.
+- Model checkpoints, SwanLab logs, CSV outputs, and intermediate paper figures are treated as local artifacts and are not committed by default.
+- To reproduce an experiment, please check the corresponding experiment directory for its own `README.md` and `requirements.txt`.
+
+## Experiment List
+
+The following table summarizes the empirical studies included in this repository. Click the experiment name to view the source code, reports, and reproduction instructions.
+
+| ID | Experiment | Topic | Report Preview | Status |
+| :---: | :--- | :--- | :---: | :---: |
+| `Exp-01` | [Data Scale, Model Complexity, and Input Information in Vision Generalization](./Exp_01/) | Controlled experiments on CIFAR-10/CIFAR-100 to study how training data scale, model complexity, and input information modalities affect fitting ability and generalization performance. | [arXiv:2606.04409](https://arxiv.org/abs/2606.04409) | In progress |
+
+## Contact
+
+- Email: zhoulyd@126.com
+
 If you find this repository helpful, feel free to leave a ⭐.
